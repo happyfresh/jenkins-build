@@ -1,15 +1,15 @@
 ## Preparation
 1. Clone this repository
-2. `mv jenkins-build/jenkins-job /usr/local/bin/jenkins-job
+2. `mv jenkins-build/jenkins-job /usr/local/bin/jenkins-job`
 3. Create env file with several keys into folder `jenkins/.env`
-	```
-		JENKINS_URL=
-		JENKINS_TOKEN=
-		JENKINS_USER_ID=
-		JENKINS_USER_TOKEN=
-		JENKINS_JOB_{alias}=
-	```
-4. Run `jenkins-job start staging -i -f -m "Test build script"
+```
+JENKINS_URL=
+JENKINS_TOKEN=
+JENKINS_USER_ID=
+JENKINS_USER_TOKEN=
+JENKINS_JOB_{alias}=
+```
+4. Run `jenkins-job start staging -i -f -m "Test build script"`
 	-i: For show log build
 	-f: Force build. Cancel running job, and run this job
 	-m: Put build message.
