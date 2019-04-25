@@ -14,7 +14,7 @@ stop_build() {
 	if [ -z "$build_number" ]; then
 		build_number="lastBuild"
 	fi
-	curl -X POST --user $JENKINS_USER_ID:$JENKINS_USER_TOKEN --data-urlencode "token=${JENKINS_TOKEN}" --data-urlencode "cause=Force Stop" --data-urlencode "branch=${GIT_BRANCH}" "${job_url}/${build_number}/stop"
+	curl -X POST --user $JENKINS_USER_ID:$JENKINS_USER_TOKEN --data-urlencode "token=${JENKINS_TOKEN}" --data-urlencode "cause=Force Stop" "${job_url}/${build_number}/stop"
 	echo "Job ${job_alias} ${build_number} has stop"
 }
 
@@ -23,7 +23,7 @@ do_on_exit() {
 }
 
 get_last_build_number() {
-	curl -s -X POST --user $JENKINS_USER_ID:$JENKINS_USER_TOKEN --data-urlencode "token=${JENKINS_TOKEN}" --data-urlencode "cause=Force Stop" --data-urlencode "branch=${GIT_BRANCH}" "${job_url}/lastBuild/buildNumber"
+	curl -s -X POST --user $JENKINS_USER_ID:$JENKINS_USER_TOKEN --data-urlencode "token=${JENKINS_TOKEN}" --data-urlencode "cause=Force Stop" "${job_url}/lastBuild/buildNumber"
 }
 
 get_log_text() {
@@ -35,7 +35,7 @@ get_log_text() {
 	if [ -z "$start" ]; then
 		start=0
 	fi
-	curl -s -X POST --user $JENKINS_USER_ID:$JENKINS_USER_TOKEN --data-urlencode "token=${JENKINS_TOKEN}" --data-urlencode "branch=${GIT_BRANCH}" --data-urlencode "start=${start}" "${job_url}/${build_number}/logText/progressiveText"
+	curl -s -X POST --user $JENKINS_USER_ID:$JENKINS_USER_TOKEN --data-urlencode "token=${JENKINS_TOKEN}" --data-urlencode "start=${start}" "${job_url}/${build_number}/logText/progressiveText"
 }
 
 # Pass the env-vars to MYCOMMAND
@@ -100,9 +100,10 @@ fi
 
 force=false
 info=false
+branch=$GIT_BRANCH
 
 message="Build by ${JENKINS_USER_ID}."
-while getopts ":fim:" o; do
+while getopts ":fimb:" o; do
     case "${o}" in
         m)
 		message="${message} ${OPTARG}"
@@ -115,6 +116,10 @@ while getopts ":fim:" o; do
 		echo "Show build info"
 		info=true
 		;;
+	b)
+		echo "Build branch $OPTARG"
+		branch=$OPTARG
+		;;
 	*)
 		echo "Another"
 		;;
@@ -125,11 +130,11 @@ echo "${message}"
 
 if [[ "${force}" == "true" ]]; then 
 echo "Stop last build job ${job_alias}"
-stop_last_build
+stop_build
 fi
 
 echo "Start build job ${job_alias}"
-curl -X POST --user $JENKINS_USER_ID:$JENKINS_USER_TOKEN --data-urlencode "token=${JENKINS_TOKEN}" --data-urlencode "cause=${message}" --data-urlencode "branch=${GIT_BRANCH}" "${job_url}/buildWithParameters"
+curl -X POST --user $JENKINS_USER_ID:$JENKINS_USER_TOKEN --data-urlencode "token=${JENKINS_TOKEN}" --data-urlencode "cause=${message}" --data-urlencode "branch=${branch}" "${job_url}/buildWithParameters"
 
 trap prompt_before_exit INT
 trap do_on_exit EXIT
