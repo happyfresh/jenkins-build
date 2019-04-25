@@ -20,3 +20,11 @@ It will be read $HOME first and then current folder for export the `.jenkinsenv`
 1. `jenkins-job start staging` -> Start job
 2. `jenkins-job stop staging` / `jenkins-job stop staging 94` -> Stop last job / Stop job number 94
 3. `jenkins-job log staging` / `jenkins-job log staging 94` -> Get log last job / Get log job number 94
+
+### Bash Completion
+1. `mv jenkins-build/jenkins-job-completion.bash /usr/local/etc/bash_completion.d/jenkins-job-completion.bash`
+2. Add line in .bash_profile
+```
+# jenkins job completion
+source /usr/local/etc/bash_completion.d/jenkins-job-completion.bash
+```
