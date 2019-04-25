@@ -9,10 +9,11 @@ JENKINS_USER_ID=
 JENKINS_USER_TOKEN=
 JENKINS_JOB_{alias}=
 ```
-4. Run `jenkins-job start staging -i -f -m "Test build script"`
+4. Run `jenkins-job start staging -i -f -m "Test build script" -b staging`
 <br/>-i: For show log build
 <br/>-f: Force build. Cancel running job, and run this job
 <br/>-m: Put build message.
+<br/>-b: Branch to build. Default use current branch
 
 ### Command
 1. `jenkins-job start staging` -> Start job
