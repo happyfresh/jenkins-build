@@ -1,0 +1,162 @@
+prompt_before_exit() {
+	read -p "Do you want to abort running job ([y]es/[n]o/[c]ancel)?" ync
+	case $ync in
+        	[Yy]* )
+			stop_build; exit;;
+	        [Nn]* ) exit;;
+        	[Cc]* ) echo "continue";;
+		* ) echo "Please answer yes, no, or cancel.";;
+	esac
+}
+
+stop_build() {
+	build_number=$1
+	if [ -z "$build_number" ]; then
+		build_number="lastBuild"
+	fi
+	curl -X POST --user $JENKINS_USER_ID:$JENKINS_USER_TOKEN --data-urlencode "token=${JENKINS_TOKEN}" --data-urlencode "cause=Force Stop" --data-urlencode "branch=${GIT_BRANCH}" "${job_url}/${build_number}/stop"
+	echo "Job ${job_alias} ${build_number} has stop"
+}
+
+do_on_exit() {
+	rm .jenkins_build.tmp
+}
+
+get_last_build_number() {
+	curl -s -X POST --user $JENKINS_USER_ID:$JENKINS_USER_TOKEN --data-urlencode "token=${JENKINS_TOKEN}" --data-urlencode "cause=Force Stop" --data-urlencode "branch=${GIT_BRANCH}" "${job_url}/lastBuild/buildNumber"
+}
+
+get_log_text() {
+	build_number=$1
+	if [ -z "$build_number" ]; then
+		build_number="lastBuild"
+	fi
+	start=$2
+	if [ -z "$start" ]; then
+		start=0
+	fi
+	curl -s -X POST --user $JENKINS_USER_ID:$JENKINS_USER_TOKEN --data-urlencode "token=${JENKINS_TOKEN}" --data-urlencode "branch=${GIT_BRANCH}" --data-urlencode "start=${start}" "${job_url}/${build_number}/logText/progressiveText"
+}
+
+# Pass the env-vars to MYCOMMAND
+# eval $(egrep -v '^#' .env | xargs) MYCOMMAND
+# … or ...
+# Export the vars in .env into your shell:
+export $(egrep -v '^#' "${PWD}/jenkins/.env" | xargs)
+# export $(egrep -v '^#' "${1}" | xargs)
+
+if [ -z "$JENKINS_URL" ] || [ -z "$JENKINS_TOKEN" ] || [ -z "$JENKINS_USER_ID" ] || [ -z "$JENKINS_USER_TOKEN" ]; then
+	echo "Define env first"
+	echo -e "\tJENKINS_URL"
+	echo -e "\tJENKINS_TOKEN"
+	echo -e "\tJENKINS_USER_ID"
+	echo -e "\tJENKINS_USER_TOKEN"
+	exit
+fi
+
+command=$1; shift
+
+if [ -z "$command" ]; then
+	echo "Command not found"
+	exit
+fi
+
+job_alias=$1; shift
+eval "job=\$JENKINS_JOB_$job_alias"
+
+if [ -z "$job" ]; then
+	echo "Job not found"
+	exit
+fi
+
+job_url="$JENKINS_URL/job/${job}"
+
+# check if command to stop job
+if [ "stop" == "$command" ]; then
+	build_number=$1; shift
+	if [ -z "$build_number" ]; then
+		stop_build
+	else
+		stop_build $build_number
+	fi
+	exit
+fi
+
+if [ "log" == "$command" ]; then
+	build_number=$1; shift
+	if [ -z "$build_number" ]; then
+		get_log_text
+	else
+		get_log_text $build_number
+	fi
+	exit
+fi
+
+# check if command not start job
+if [ "start" != "$command" ]; then
+	echo "Command not found"
+	exit
+fi
+
+force=false
+info=false
+
+message="Build by ${JENKINS_USER_ID}."
+while getopts ":fim:" o; do
+    case "${o}" in
+        m)
+		message="${message} ${OPTARG}"
+		;;
+	f)
+		echo "Force build"
+		force=true
+		;;
+	i)
+		echo "Show build info"
+		info=true
+		;;
+	*)
+		echo "Another"
+		;;
+    esac
+done
+shift $((OPTIND-1))
+echo "${message}"
+
+if [[ "${force}" == "true" ]]; then 
+echo "Stop last build job ${job_alias}"
+stop_last_build
+fi
+
+echo "Start build job ${job_alias}"
+curl -X POST --user $JENKINS_USER_ID:$JENKINS_USER_TOKEN --data-urlencode "token=${JENKINS_TOKEN}" --data-urlencode "cause=${message}" --data-urlencode "branch=${GIT_BRANCH}" "${job_url}/buildWithParameters"
+
+trap prompt_before_exit INT
+trap do_on_exit EXIT
+
+if [[ "${info}" == "true" ]]; then 
+log=""
+last_build_number=$(get_last_build_number)
+is_logging=false
+echo "Waiting job ${job_alias} started"
+while
+	sleep 5
+	if [ "${is_logging}" == "false" ]; then
+		current_build_number=$(get_last_build_number)
+		if [ $last_build_number == $current_build_number ]; then
+			continue
+		fi
+		is_logging=true
+	fi
+	start=`echo $log | awk '{print length}'`
+	get_log_text $current_build_number $start > .jenkins_build.tmp
+	cat .jenkins_build.tmp
+	log="${log} $(cat .jenkins_build.tmp)"
+	if [[ $(cat .jenkins_build.tmp) == *"Finished:"* ]]; then
+		break
+	fi
+do :; done
+if [ "$is_logging" == "true" ]; then
+	do_on_exit
+fi
+fi
