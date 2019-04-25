@@ -19,7 +19,9 @@ stop_build() {
 }
 
 do_on_exit() {
-	rm .jenkins_build.tmp
+	if [ -f "$tmp_file" ]; then
+		rm $tmp_file
+	fi
 }
 
 get_last_build_number() {
@@ -54,6 +56,7 @@ if [ -z "$JENKINS_URL" ] || [ -z "$JENKINS_TOKEN" ] || [ -z "$JENKINS_USER_ID" ]
 	exit
 fi
 
+tmp_file=".jenkins_build.tmp"
 command=$1; shift
 
 if [ -z "$command" ]; then
@@ -154,14 +157,12 @@ while
 		is_logging=true
 	fi
 	start=`echo $log | awk '{print length}'`
-	get_log_text $current_build_number $start > .jenkins_build.tmp
-	cat .jenkins_build.tmp
-	log="${log} $(cat .jenkins_build.tmp)"
-	if [[ $(cat .jenkins_build.tmp) == *"Finished:"* ]]; then
+	get_log_text $current_build_number $start > $tmp_file
+	cat $tmp_file
+	log="${log} $(cat $tmp_file)"
+	if [[ $(cat $tmp_file) == *"Finished:"* ]]; then
 		break
 	fi
 do :; done
-if [ "$is_logging" == "true" ]; then
-	do_on_exit
-fi
+do_on_exit
 fi
