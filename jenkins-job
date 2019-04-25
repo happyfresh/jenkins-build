@@ -14,7 +14,7 @@ stop_build() {
 	if [ -z "$build_number" ]; then
 		build_number="lastBuild"
 	fi
-	curl -X POST --user $JENKINS_USER_ID:$JENKINS_USER_TOKEN --data-urlencode "token=${JENKINS_TOKEN}" --data-urlencode "cause=Force Stop" "${job_url}/${build_number}/stop"
+	curl -X POST --user $JENKINS_USER_ID:$JENKINS_USER_TOKEN --data-urlencode "token=${JENKINS_TOKEN}" "${job_url}/${build_number}/stop"
 	echo "Job ${job_alias} ${build_number} has stop"
 }
 
@@ -25,7 +25,7 @@ do_on_exit() {
 }
 
 get_last_build_number() {
-	curl -s -X POST --user $JENKINS_USER_ID:$JENKINS_USER_TOKEN --data-urlencode "token=${JENKINS_TOKEN}" --data-urlencode "cause=Force Stop" "${job_url}/lastBuild/buildNumber"
+	curl -s -X POST --user $JENKINS_USER_ID:$JENKINS_USER_TOKEN --data-urlencode "token=${JENKINS_TOKEN}" "${job_url}/lastBuild/buildNumber"
 }
 
 get_log_text() {
@@ -40,12 +40,14 @@ get_log_text() {
 	curl -s -X POST --user $JENKINS_USER_ID:$JENKINS_USER_TOKEN --data-urlencode "token=${JENKINS_TOKEN}" --data-urlencode "start=${start}" "${job_url}/${build_number}/logText/progressiveText"
 }
 
-# Pass the env-vars to MYCOMMAND
-# eval $(egrep -v '^#' .env | xargs) MYCOMMAND
-# … or ...
-# Export the vars in .env into your shell:
-export $(egrep -v '^#' "${PWD}/jenkins/.env" | xargs)
-# export $(egrep -v '^#' "${1}" | xargs)
+env_file=".jenkinsenv"
+if [ -f "$HOME/$env_file" ]; then
+	export $(egrep -v '^#' "$HOME/$env_file" | xargs)
+fi
+
+if [ -f "$env_file" ]; then
+	export $(egrep -v '^#' "$env_file" | xargs)
+fi
 
 if [ -z "$JENKINS_URL" ] || [ -z "$JENKINS_TOKEN" ] || [ -z "$JENKINS_USER_ID" ] || [ -z "$JENKINS_USER_TOKEN" ]; then
 	echo "Define env first"
@@ -106,7 +108,7 @@ info=false
 branch=$GIT_BRANCH
 
 message="Build by ${JENKINS_USER_ID}."
-while getopts ":fimb:" o; do
+while getopts "fim:b:" o; do
     case "${o}" in
         m)
 		message="${message} ${OPTARG}"
@@ -129,7 +131,11 @@ while getopts ":fimb:" o; do
     esac
 done
 shift $((OPTIND-1))
-echo "${message}"
+
+if [ -z "$branch" ]; then
+	echo "Branch not define"
+	exit
+fi
 
 if [[ "${force}" == "true" ]]; then 
 echo "Stop last build job ${job_alias}"

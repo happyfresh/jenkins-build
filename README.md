@@ -1,7 +1,7 @@
 ## Preparation
 1. Clone this repository
 2. `mv jenkins-build/jenkins-job /usr/local/bin/jenkins-job`
-3. Create env file with several keys into folder `jenkins/.env`
+3. Create env file with several keys with name `.jenkinsenv`
 ```
 JENKINS_URL=
 JENKINS_TOKEN=
@@ -9,6 +9,7 @@ JENKINS_USER_ID=
 JENKINS_USER_TOKEN=
 JENKINS_JOB_{alias}=
 ```
+It will be read $HOME first and then current folder for export the `.jenkinsenv` file.
 4. Run `jenkins-job start staging -i -f -m "Test build script" -b staging`
 <br/>-i: For show log build
 <br/>-f: Force build. Cancel running job, and run this job
