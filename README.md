@@ -10,11 +10,11 @@ JENKINS_USER_TOKEN=
 JENKINS_JOB_{alias}=
 ```
 It will be read $HOME first and then current folder for export the `.jenkinsenv` file.
-4. Run `jenkins-job start staging -i -f -m "Test build script" -b staging`
+4. Run `jenkins-job start staging -i -f -m "Test build script" -p branch=staging`
 <br/>-i: For show log build
 <br/>-f: Force build. Cancel running job, and run this job
 <br/>-m: Put build message.
-<br/>-b: Branch to build. Default use current branch
+<br/>-p: Parameter to build.
 
 ### Command
 1. `jenkins-job start staging` -> Start job
